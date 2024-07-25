@@ -35,6 +35,7 @@ type (
 
 		TxInsert(tx *sql.Tx, data *Order) (sql.Result, error)
 		TxUpdate(tx *sql.Tx, data *Order) error
+		FindOneByUid(uid int64) (*Order, error)
 	}
 
 	defaultOrderModel struct {
@@ -146,6 +147,23 @@ func (m *defaultOrderModel) TxUpdate(tx *sql.Tx, data *Order) error {
 	}, productIdKey)
 	return err
 }
+
+func (m *defaultOrderModel) FindOneByUid(uid int64) (*Order, error) {
+	var resp Order
+
+	query := fmt.Sprintf("select %s from %s where `uid` = ? order by create_time desc limit 1", orderRows, m.table)
+	err := m.QueryRowNoCache(&resp, query, uid)
+
+	switch err {
+	case nil:
+		return &resp, nil
+	case sqlc.ErrNotFound:
+		return nil, ErrNotFound
+	default:
+		return nil, err
+	}
+}
+
 
 func (m *defaultOrderModel) tableName() string {
 	return m.table
